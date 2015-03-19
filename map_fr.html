@@ -1,13 +1,13 @@
 
 <!DOCTYPE html>
+<!-- Réalisés par Takieddine MOUGARI et Fatoumata BA -->
 <meta charset="utf-8">
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset="utf-8" />
 		
 			<title> Transport Urbain Français</title>
 		
-			<h1 align="center"> <font face="Lucida Calligraphy" size="7">Perimétre de 
-Transport Urbain en France </font> </h1>
+			<h1 align="center"> <font face="Lucida Calligraphy" size="7">Transports Collectifs Urbains 2007-2012 </font> </h1>
 		
 		<script src="http://d3js.org/d3.v3.min.js"></script>
 		<script src="http://d3js.org/queue.v1.min.js"></script>
@@ -171,7 +171,7 @@ Transport Urbain en France </font> </h1>
 		//range de 1 à 9, celà implique que nous avons 9 variables pour représenter la population de departements
 			var quantile = d3.scale.quantile().domain([0, d3.max(csv, function(e) { return + e.Pop_2007 })]).range(d3.range(9));
 			console.log(csv)
-			//($('#an').val());
+			
 			
 //un groupe qui contiendra nos rectangle de differentes couleurs
 // Méthode translate pour être positioné correctement
