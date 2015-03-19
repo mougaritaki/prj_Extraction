@@ -1,0 +1,294 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset="utf-8" />
+		
+			<title> Transport Urbain Français</title>
+		
+			<h1 align="center"> <font face="Lucida Calligraphy" size="7">Perimétre de 
+Transport Urbain en France </font> </h1>
+		
+		<script src="http://d3js.org/d3.v3.min.js"></script>
+		<script src="http://d3js.org/queue.v1.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+		<link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+		<link rel="stylesheet" href="colorbrewer.css">
+		<script src="http://d3js.org/colorbrewer.v1.min.js"></script>
+		  
+		<style type="text/css">
+			#info {
+				margin-top: 50px;
+			}
+			
+			#deptinfo {
+				margin-top: 30px;
+			}
+			
+			.department {
+				cursor: pointer;
+				stroke: black;
+				stroke-width: .5px;
+			}
+			
+			.department:hover {
+				stroke-width: 2px;
+			}
+			
+			div.tooltip {
+				position: absolute;
+				opacity:0.8;
+				z-index:1000;
+				text-align:left;
+				border-radius:10px;
+				-moz-border-radius:10px;
+				-webkit-border-radius:10px;
+				padding:8px;
+				color:#fff;
+				background-color:#000;
+				font: 12px sans-serif;
+				max-width: 500px;
+				height:120px;
+			}
+			
+			#svg {
+				display: block;
+				margin: auto;
+			}
+			
+			.axis {
+				shape-rendering: crispEdges;
+				font: 10px sans-serif;
+			}
+
+			.axis path, .axis line {
+				fill: none;
+				shape-rendering: crispedges;
+				stroke: #000000;
+			}
+			 body {
+				background-image: url("image/fond_510.png");
+				background-repeat: no-repeat;
+			}
+		</style>
+	</head>
+ 
+	<body>
+	</div>
+<div class="container">
+		<div class="row white">
+		<div class="col-lg-4 centered"></div> <!-- Empty to center the next one -->
+		<div class="col-lg-4 centered">
+			<form>
+				<fieldset>
+					<div>
+						<center>
+						<label for="male">Jeu de couleurs</label>
+						<select>
+							<option value="YlGn">Jaune-Vert</option>
+							<option value="YlGnBu">Jaune-Vert-Bleu</option>
+							<option value="GnBu">Vert-Bleu</option>
+							<option value="BuGn">Bleu-Vert</option>
+							<option value="PuBuGn">Violet-Bleu-Vert</option>
+							<option value="PuBu">Violet-Bleu</option>
+							<option value="BuPu">Bleu-Violet</option>
+							<option value="RdPu">Rouge-Violet</option>
+							<option value="PuRd">Violet-Rouge</option>
+							<option value="OrRd">Orange-Rouge</option>
+							<option value="YlOrRd"selected="selected">Jaune-Orange-Rouge</option>
+							<option value="YlOrBr">Jaune-Orange-Marron</option>
+							<option value="Purples">Violets</option>
+							<option value="Blues">Bleu</option>
+							<option value="Greens">Vert</option>
+							<option value="Oranges">Orange</option>
+							<option value="Reds">Rouge</option>
+							<option value="Greys">Gris</option>
+						</select>
+						<label for="male">ANNEE</label>
+						<select name="an" id="an" class="an">
+							  <option value="2012">2012</option>
+							  <option value="2011">2011</option>
+							  <option value="2010">2010</option> 
+							  <option value="2009">2009</option>
+							  <option value="2008">2008</option>  
+							  <option value="2007">2007</option> 
+						</center>
+						</select>
+					</div>
+				</fieldset>
+			</form>
+			
+			
+		</div>
+		<div id="map"></div>
+	</body>
+</html>
+<script type="text/javascript">
+
+// Nous commençons par définir les dimensions de notre SVG
+	var width = 700, height = 550;
+
+// Ensuite, nous créons un object path pour maniouler nos données geoJSON 
+	var path = d3.geo.path();
+	
+// la definition de la projection et nous la sur la France 
+	var projection = d3.geo.conicConformal()
+		.center([2.454071, 46.279229])
+		.scale(3000)
+		.translate([width / 2, height / 2]);
+		
+// La projection est ensuite assignée au path
+	path.projection(projection);
+	
+	var barValue = function(d) { return parseFloat(d[($('#comm').val()).concat($('#an').val())]); };
+ 
+	var svg = d3.select('#map').append("svg")
+		.attr("id", "svg")
+		.attr("width", width)
+		.attr("height", height)
+		.attr("class", "YlOrRd");
+ 
+	var deps = svg.append("g");
+	
+// Nous ajoutons un div a notre DOM pour l'affichage du tooltip
+	var div = d3.select("body").append("div")  
+    .attr("class", "tooltip")              
+    .style("opacity", 0);
+
+// nous procedons ensuite à l'affiche du map grace a notre fichier department.json qui contient nos polygones
+	d3.json('departments.json', function(req, geojson) {
+		var features = deps
+			.selectAll("path")
+			.data(geojson.features)
+			.enter()
+			.append("path")
+			.attr('id', function(d) {return "d" + d.properties.CODE_DEPT;})
+			.attr("d", path);
+		
+		d3.csv("fichiergoe.csv", function(error,csv) {
+		// la definition de la fonction qui nous permettre d'obtenir la couleurs des department en fonction de la population
+		//d3.scale().quantile() entre 0 et le max de notre population
+		//range de 1 à 9, celà implique que nous avons 9 variables pour représenter la population de departements
+			var quantile = d3.scale.quantile().domain([0, d3.max(csv, function(e) { return + e.Pop_2007 })]).range(d3.range(9));
+			console.log(csv)
+			//($('#an').val());
+			
+//un groupe qui contiendra nos rectangle de differentes couleurs
+// Méthode translate pour être positioné correctement
+			legend = svg.append('g')
+				.attr('transform', 'translate(525, 150)')
+				.attr('id', 'legend');
+			
+//9 rectangles aux dimensions de 20px par 20px
+// la coloration se fait avec l'attribut class			
+			legend.selectAll('.colorbar')
+				.data(d3.range(9))
+				.enter().append('svg:rect')
+				.attr('y', function(d) { return d * 20 + 'px'; })
+				.attr('height', '20px')
+				.attr('width', '20px')
+				.attr('x', '0px')
+				.attr("class", function(d) { return "q" + d + "-9"; });
+				
+			
+// la definition du domain							
+			legendScale = d3.scale.linear()
+				.domain([0, d3.max(csv, function(e) { return +e.Pop_2007; })])
+				.range([0, 9 * 20]);
+
+// la definition de l'axe qui utilise le domaine précedemment definie				
+			legendAxis = d3.svg.axis()
+				.scale(legendScale)
+				.orient('right')
+				.tickSize(9)
+				.ticks(9);
+
+//Un nouveau groupe qui utilise la definition de notre axe, ce groupe pour placer correctement à droite des rectangles				
+			legendLabels = svg.append('g')
+				.attr('transform', 'translate(550, 150)')
+				.attr('class', 'y axis')
+				.call(legendAxis);
+				
+// les méthodes mouseout et nouseover  sur chaque path que contient le svg
+// Le mouseover déclenche une transition sur 200ms visant à faire apparaître le rectangle decrivant le departement
+// Le mouseout fait disparaitre ce ractangle en une transition de 500ms
+			if($('#an').val = 2007){
+			csv.forEach(function(e,i) {
+				//console.log()
+				d3.select("#d" + e.CODE_DEPT)
+					.attr("class", function(d) { return "department q" + quantile(+e.Pop_2007) + "-9"; })
+					.on("mouseover", function(d) {
+						div.transition()       
+							.duration(200)     
+							.style("opacity", .9);
+							
+								div.html("<b>Région : </b>" + e.PTU + "<br>"
+										+ "<b>dep :</b>" +e.CODE_DEPT + "<br>"
+										+ "<b>Population : </b>" + e.Pop_2007 + "<br>"
+										+ "<b>Parc Total de vehicule :</b>" + e.Nbvehicules_2007 + "<br>"
+										+ "<b>Nombre de Commune : </b>" + e.Nbcomm_2007 +" <br>"
+										+ "<b>Nombre de Ligne : </b>" + e.Nblignes_2007+ "<br>"
+										+ "<b>Longueur de Ligne</b>" + e.Longlignes_2007 + "<br>"
+										+ "<b>Charge de Voyages</b>" + e.ChargeVoya_2007 +"<br>"
+										+ + "<b></b>" + e.PartipColect_2007 +"<br>")
+									.style("left", (d3.event.pageX + 40) + "px")    
+									.style("top", (d3.event.pageY - 40) + "px");		
+							
+					})
+					.on("mouseout", function(d) {
+						div.transition()
+							.duration(500)
+							.style("opacity", 0);
+						div.html("")
+							.style("left", "0px")
+							.style("top", "0px");
+					});
+			});
+		}else if 
+		($('#an').val = 2008){
+			csv.forEach(function(e,i) {
+				//console.log()
+				d3.select("#d" + e.CODE_DEPT)
+					.attr("class", function(d) { return "department q" + quantile(+e.Pop_2008) + "-9"; })
+					.on("mouseover", function(d) {
+						div.transition()       
+							.duration(200)     
+							.style("opacity", .9);
+							
+								div.html("<b>Région : </b>" + e.PTU + "<br>"
+										+ "<b>dep :</b>" +e.CODE_DEPT + "<br>"
+										+ "<b>Population : </b>" + e.Pop_2008 + "<br>"
+										+ "<b>Parc Total de vehicule :</b>" + e.Nbvehicules_2008 + "<br>"
+										+ "<b>Nombre de Commune : </b>" + e.Nbcomm_2008 +" <br>"
+										+ "<b>Nombre de Ligne : </b>" + e.Nblignes_2007+ "<br>"
+										+ "<b>Longueur de Ligne</b>" + e.Longlignes_2007 + "<br>"
+										+ "<b>Charge de Voyages</b>" + e.ChargeVoya_2007 +"<br>"
+										+ + "<b></b>" + e.PartipColect_2007 +"<br>")
+									.style("left", (d3.event.pageX + 40) + "px")    
+									.style("top", (d3.event.pageY - 40) + "px");		
+							
+					})
+					.on("mouseout", function(d) {
+						div.transition()
+							.duration(500)
+							.style("opacity", 0);
+						div.html("")
+							.style("left", "0px")
+							.style("top", "0px");
+					});
+			});
+		}
+			
+			
+			
+			// un listener sur note liste de choix de couleurs pour rafraichir l'ensembre		
+			d3.select("select").on("change", function() {
+					d3.selectAll("svg").attr("class", this.value);
+			});
+						
+		});
+		
+	});
+
+	
+</script>
